@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<!-- saved from url=(0032)http://127.0.0.1:5500/index.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>PlacementPro - Prototype</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      display: flex;
+    }
+
+    .sidebar {
+      width: 220px;
+      background: #1e293b;
+      color: white;
+      height: 100vh;
+      padding: 20px;
+    }
+
+    .sidebar button {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: none;
+      background: #334155;
+      color: white;
+      cursor: pointer;
+    }
+
+    .sidebar button:hover {
+      background: #475569;
+    }
+
+    .main {
+      flex: 1;
+      padding: 20px;
+      background: #f1f5f9;
+      overflow-y: auto;
+    }
+
+    .card {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+    }
+
+    button.action {
+      background: #2563eb;
+      color: white;
+      padding: 8px;
+      border: none;
+      cursor: pointer;
+    }
+
+    button.action:hover {
+      background: #1d4ed8;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="sidebar">
+  <h2>PlacementPro</h2>
+  <button onclick="showDashboard()">Dashboard</button>
+  <button onclick="showTPO()">TPO</button>
+  <button onclick="showStudent()">Student</button>
+  <button onclick="showAlumni()">Alumni</button>
+  <button onclick="showAnalytics()">Analytics</button>
+  <button onclick="showBot()">Bot</button>
+</div>
+
+<div class="main" id="content">
+    <h2>Dashboard Overview</h2>
+    <div class="card">Total Drives: 2</div>
+    <div class="card">Total Students: 3</div>
+  </div>
+
+<script>
+
+/* ================= SAMPLE DATA ================= */
+
+let students = [
+  { id:1, name:"Rahul", branch:"MCA", cgpa:8.5, backlogs:0, status:{} },
+  { id:2, name:"Ananya", branch:"MCA", cgpa:7.2, backlogs:0, status:{} },
+  { id:3, name:"Karthik", branch:"MCA", cgpa:6.8, backlogs:1, status:{} }
+];
+
+let drives = [];
+let alumniJobs = [];
+
+/* ================= DASHBOARD ================= */
+
+function showDashboard() {
+  document.getElementById("content").innerHTML = `
+    <h2>Dashboard Overview</h2>
+    <div class="card">Total Drives: ${drives.length}</div>
+    <div class="card">Total Students: ${students.length}</div>
+  `;
+}
+
+/* ================= TPO ================= */
+
+function showTPO() {
+  document.getElementById("content").innerHTML = `
+    <h2>TPO Panel</h2>
+
+    <div class="card">
+      <h3>Create Drive</h3>
+      <input id="company" placeholder="Company Name">
+      <input id="minCGPA" type="number" placeholder="Min CGPA">
+      <input id="branch" placeholder="Branch">
+      <input id="backlogs" type="number" placeholder="Max Backlogs">
+      <button class="action" onclick="createDrive()">Create</button>
+    </div>
+
+    <div id="driveList"></div>
+  `;
+
+  renderDrives();
+}
+
+function createDrive() {
+  drives.push({
+    id: drives.length + 1,
+    company: company.value,
+    minCGPA: Number(minCGPA.value),
+    branch: branch.value,
+    backlogs: Number(backlogs.value)
+  });
+
+  alert("Drive Created!");
+  renderDrives();
+}
+
+function renderDrives() {
+  let html = "";
+
+  drives.forEach(d => {
+    html += `
+      <div class="card">
+        <b>${d.company}</b><br>
+        CGPA ≥ ${d.minCGPA}
+        <br><br>
+        <button class="action" onclick="checkEligible(${d.id})">Check Eligible</button>
+      </div>
+    `;
+  });
+
+  document.getElementById("driveList").innerHTML = html;
+}
+
+function checkEligible(id) {
+  let drive = drives.find(d => d.id === id);
+
+  let eligible = students.filter(s =>
+    s.cgpa >= drive.minCGPA &&
+    s.branch === drive.branch &&
+    s.backlogs <= drive.backlogs
+  );
+
+  let html = "<h3>Eligible Students</h3>";
+
+  eligible.forEach(s => {
+    html += `<div class="card">${s.name} - CGPA ${s.cgpa}</div>`;
+  });
+
+  document.getElementById("driveList").innerHTML += html;
+}
+
+/* ================= STUDENT ================= */
+
+function showStudent() {
+  let html = `
+    <h2>Student Portal</h2>
+    <select id="studentSelect" onchange="loadStudentDrives()">
+  `;
+
+  students.forEach(s => {
+    html += `<option value="${s.id}">${s.name}</option>`;
+  });
+
+  html += `</select><div id="studentDrives"></div>`;
+
+  document.getElementById("content").innerHTML = html;
+  loadStudentDrives();
+}
+
+function loadStudentDrives() {
+  let studentId = studentSelect.value;
+  let student = students.find(s => s.id == studentId);
+
+  let html = "";
+
+  drives.forEach(d => {
+    let eligible = (
+      student.cgpa >= d.minCGPA &&
+      student.branch === d.branch &&
+      student.backlogs <= d.backlogs
+    );
+
+    let status = student.status[d.id] || "Not Applied";
+
+    html += `
+      <div class="card">
+        ${d.company}<br>
+        Status: ${status}<br>
+        ${eligible && status==="Not Applied"
+          ? `<button class="action" onclick="apply(${student.id},${d.id})">Apply</button>`
+          : ""}
+      </div>
+    `;
+  });
+
+  document.getElementById("studentDrives").innerHTML = html;
+}
+
+function apply(studentId, driveId) {
+  let student = students.find(s => s.id == studentId);
+  student.status[driveId] = "Applied";
+  alert("Applied Successfully");
+  loadStudentDrives();
+}
+
+/* ================= ALUMNI ================= */
+
+function showAlumni() {
+  document.getElementById("content").innerHTML = `
+    <h2>Alumni Portal</h2>
+    <input id="aCompany" placeholder="Company">
+    <input id="aRole" placeholder="Role">
+    <button class="action" onclick="postJob()">Post</button>
+    <div id="jobs"></div>
+  `;
+}
+
+function postJob() {
+  alumniJobs.push({
+    company: aCompany.value,
+    role: aRole.value
+  });
+  alert("Job Posted");
+  renderJobs();
+}
+
+function renderJobs() {
+  let html = "";
+  alumniJobs.forEach(j => {
+    html += `<div class="card">${j.company} - ${j.role}</div>`;
+  });
+  jobs.innerHTML = html;
+}
+
+/* ================= ANALYTICS ================= */
+
+function showAnalytics() {
+  document.getElementById("content").innerHTML = `
+    <h2>Skill Gap Analysis</h2>
+    Prototype Version: Skill Matching Engine
+    <div class="card">
+      Shows readiness level based on CGPA.
+    </div>
+  `;
+}
+
+/* ================= BOT ================= */
+
+function showBot() {
+  document.getElementById("content").innerHTML = `
+    <h2>PlacementBot</h2>
+    <input id="msg">
+    <button class="action" onclick="botReply()">Send</button>
+    <div id="chat"></div>
+  `;
+}
+
+function botReply() {
+  let text = msg.value.toLowerCase();
+  let reply = "I didn't understand.";
+
+  if(text.includes("cutoff")) reply = "Minimum CGPA varies per drive.";
+  if(text.includes("interview")) reply = "Interview schedule will be updated by TPO.";
+  if(text.includes("result")) reply = "Results will be reflected in status tracker.";
+
+  chat.innerHTML += `<div><b>You:</b> ${msg.value}</div>`;
+  chat.innerHTML += `<div><b>Bot:</b> ${reply}</div>`;
+  msg.value="";
+}
+
+showDashboard();
+
+</script>
+<!-- Code injected by live-server -->
+<script>
+	// <![CDATA[  <-- For SVG support
+	if ('WebSocket' in window) {
+		(function () {
+			function refreshCSS() {
+				var sheets = [].slice.call(document.getElementsByTagName("link"));
+				var head = document.getElementsByTagName("head")[0];
+				for (var i = 0; i < sheets.length; ++i) {
+					var elem = sheets[i];
+					var parent = elem.parentElement || head;
+					parent.removeChild(elem);
+					var rel = elem.rel;
+					if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
+						var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
+						elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
+					}
+					parent.appendChild(elem);
+				}
+			}
+			var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
+			var address = protocol + window.location.host + window.location.pathname + '/ws';
+			var socket = new WebSocket(address);
+			socket.onmessage = function (msg) {
+				if (msg.data == 'reload') window.location.reload();
+				else if (msg.data == 'refreshcss') refreshCSS();
+			};
+			if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
+				console.log('Live reload enabled.');
+				sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
+			}
+		})();
+	}
+	else {
+		console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
+	}
+	// ]]>
+</script>
+
+</body></html>
